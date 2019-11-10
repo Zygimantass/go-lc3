@@ -63,7 +63,13 @@ func update_flags(r uint16) {
 
 // extending any number so its sign is it's MSB (two's complement)
 
-func sign_extend(x uint16, bit_count int)
+func sign_extend(x uint16, bit_count int) {
+	if (x >> (bit_count - 1)) & 1 {
+		x |= (0xFFFF << bit_count)
+	}
+
+	return x
+}
 
 func main() {
 	const PC_START = 0x3000
