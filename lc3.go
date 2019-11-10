@@ -114,6 +114,7 @@ func main() {
 			dr = (instr >> 9) & 0x7 // destination reg
 			r1 = (instr >> 6) & 0x7 // source reg
 			reg[dr] = ^reg[r1]      // NOT operation on source reg
+
 			update_flags(dr)
 		case OP_BR:
 			cond_flag = (instr >> 9) & 0x7 // get condition flags for testing
@@ -130,7 +131,7 @@ func main() {
 			long_flag := (instr >> 11) & 0x1
 
 			if long_flag { // JSR
-				pc_offset = sign_extend(instr&0x7ff, 9)
+				pc_offset = sign_extend(instr&0x7ff, 11)
 				reg[PC] += pc_offset
 			} else { // JSRR
 				base_reg = (instr >> 6) & 0x7
@@ -139,19 +140,43 @@ func main() {
 		case OP_LD:
 			dr = (instr >> 9) & 0x7                 // destination reg
 			pc_offset = sign_extend(instr&0x1ff, 9) // get pc_offset for loading a value
-
 			reg[dr] = mem_read(reg[PC] + pc_offset) // loading value from PC + pc_offset into the dest reg
 			update_flags(dr)                        // update cond flags
 		case OP_LDI:
 			dr = (instr >> 9) & 0x7                 // destination reg
 			pc_offset = sign_extend(instr&0x1ff, 9) // get PC offset for mem-read location
 			reg[dr] = mem_read(mem_read(reg[PC] + pc_offset))
-			update_flags(dr) // update cond flags
+
+			update_flags(dr)
 		case OP_LDR:
+			dr = (instr >> 9) & 0x7                    // destination reg
+			base_reg = (instr >> 6) & 0x7              // base register
+			offset = sign_extend(instr&0x3f, 6)        // offset to add to the base register value
+			reg[dr] = mem_read(reg[base_reg] + offset) // load value from (base_reg + offset) address into dest reg
+
+			update_flags(dr)
 		case OP_LEA:
+			dr = (instr >> 9) & 0x7                 // destination reg
+			pc_offset = sign_extend(instr&0x1ff, 9) // pc_offset for address
+			reg[dr] = reg[PC] + pc_offset           // load effective address (PC value + offset) into dest reg
+
+			update_flags(dr)
 		case OP_ST:
+			sr = (instr >> 9) & 0x7                 // source reg
+			pc_offset = sign_extend(instr&0x1ff, 9) // pc_offset for address
+			addr = reg[PC] + pc_offset              // address for writing
+			mem_write(addr, reg[sr])                // writing to memory at address PC + offset
 		case OP_STI:
+			sr = (instr >> 9) & 0x7                 // source reg
+			pc_offset = sign_extend(instr&0x1ff, 9) // pc_offset for indirect address
+			addr = mem_read(reg[PC] + pc_offset)    // reading memory at PC + offset
+			mem_write(mem_read(addr), reg[sr])      // writing to memory at address value(PC + offset)
 		case OP_STR:
+			sr = (instr >> 9) & 0x7             // source reg
+			base_reg = (instr >> 6) & 0x7       // base register
+			offset = sign_extend(instr&0x3f, 6) // offset for address
+			addr = reg[base_reg] + offset       // reading memory at value(base_reg) + offset
+			mew_write(addr, reg[sr])            // writing at address value(base_reg) + offset
 		case OP_TRAP:
 		case OP_RES:
 		case OP_RTI:
